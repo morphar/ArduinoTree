@@ -38,37 +38,56 @@ byte matrix[30][2] = {
 byte DDRDOriginal = B00000000;
 byte PORTDOriginal = B00000000;
 
-void setup() {
-  // Set the default to initial values
-  DDRDOriginal = DDRD;
-  PORTDOriginal = PORTD;
+// Set a couple of constants
+#define LEDS 30
+#define FRAMES 30
+
+void shiftLeft(int *fromArr, int *toArr, int len, int shiftBy) {
+  int newIndex = (shiftBy % len);
+  for(int originalIndex=0 ; originalIndex < len; originalIndex++) {
+    if(newIndex > len-1) {
+      newIndex = 0;
+    }
+    toArr[newIndex] = fromArr[originalIndex];
+    newIndex++;
+  }
 }
 
-// Set a couple of constants
-#define LED_COUNT 30
-#define FRAMES 17
 
 // Define the frames
-// There are 17 frames with 30 LEDs in each
-int frames[FRAMES][LED_COUNT] = {
-  {   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30 },
-  {   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100 },
-  {   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0 },
-  {   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0 },
-  {   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0 },
-  {   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0 },
-  {   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0 },
-  {  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2 },
-  {  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4 },
-  {  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10 },
-  {  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10 },
-  {  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15 },
-  {  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15 },
-  {  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20 },
-  {  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20 },
-  {  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25 },
-  { 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25,  20,  10,   2,   0, 100,  25,  15,  10,   0,   0,  30,  20,  15,   4,   0,   0,  25 }
-};
+int frames[FRAMES] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 100 };
+
+// Ready the randomized array of LED frames
+int ledFrames[FRAMES][LEDS];
+
+void buildLEDFrames() {
+  randomSeed(analogRead(2));
+
+  for(int led=0 ; led < LEDS ; led++) {
+    int randNumber = random(FRAMES);
+
+    int tmpFrames[FRAMES];
+    shiftLeft(frames, tmpFrames, FRAMES, randNumber);
+    for(int i=0 ; i < FRAMES ; i++) {
+      ledFrames[i][led] = tmpFrames[i];
+    }
+  }
+
+//  for(int frame=0 ; frame < FRAMES ; frame++) {
+//    for(int led=0 ; led < LEDS ; led++) {
+//      Serial.print(ledFrames[frame][led]);
+//      Serial.print(", ");
+//    }
+//    Serial.println("");
+//  }
+
+//  for(int led=0 ; led < LEDS ; led++) {
+//    randomSeed(millis());
+//    int randNumber = random(FRAMES);
+//
+//    shiftLeft(frames, ledFrames[led], FRAMES, randNumber);
+//  }
+}
 
 // Run a frame til time is up
 void runFrame(int frame) {
@@ -76,22 +95,22 @@ void runFrame(int frame) {
   // That will probably not happen, as the 16MHz is to slow to go through this more than 1 time.
   unsigned long start;
   start = millis();
-  while((millis() - start) < 40) {
 
+  while((millis() - start) < 40) {
     // Use percentage as a "understandable" value to loop through each "percentage" of the range 
     for(int percent=1 ; percent <= 100 ; percent++) {
 
       // For each percent, go through each LED and calculate if it should be on or off
-      for(int led=0 ; led < LED_COUNT ; led++) {
+      for(int led=0 ; led < LEDS ; led++) {
 
-        if(frames[frame][led] == 0) {
+        if(ledFrames[frame][led] == 0) {
           DDRD = DDRDOriginal;
           PORTD = PORTDOriginal;
 
         // This is an easy way to have it on for x% time
         // The backside is that it may seem dimmer in the lower percent and brighter in the higher percent,
         //   than if you actually turn on every 1.49 time @ 67%, but that is really hard to do ;)
-        } else if(percent <= frames[frame][led]) {
+        } else if(percent <= ledFrames[frame][led]) {
           DDRD = DDRDOriginal | matrix[led][0];
           PORTD = PORTDOriginal | matrix[led][1];
 
@@ -102,6 +121,13 @@ void runFrame(int frame) {
       }
     }
   }
+}
+
+void setup() {
+  // Set the default to initial values
+  DDRDOriginal = DDRD;
+  PORTDOriginal = PORTD;
+  buildLEDFrames();
 }
 
 // Loop over the frames
